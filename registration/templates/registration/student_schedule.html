@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Моё расписание</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; }
+        .container { max_width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        
+        h1 { color: #2c3e50; text-align: center; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #3498db; color: white; border-radius: 5px 5px 0 0; }
+        tr:hover { background-color: #f1f2f6; }
+        
+        .badge { padding: 5px 10px; border-radius: 15px; font-weight: bold; font-size: 0.85em; }
+        .day-MON { background: #e3f2fd; color: #1565c0; }
+        .day-TUE { background: #f3e5f5; color: #7b1fa2; }
+        .day-WED { background: #e8f5e9; color: #2e7d32; }
+        .day-THU { background: #fff3e0; color: #ef6c00; }
+        .day-FRI { background: #ffebee; color: #c62828; }
+
+        .btn-back { display: inline-block; margin-top: 20px; text-decoration: none; color: #7f8c8d; }
+        .empty-msg { text-align: center; color: #95a5a6; padding: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📅 Моё расписание</h1>
+    
+    {% if enrollments %}
+    <table>
+        <thead>
+            <tr>
+                <th>День</th>
+                <th>Время</th>
+                <th>Курс</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in enrollments %}
+            <tr>
+                <td>
+                    <span class="badge day-{{ item.course.day_of_week }}">
+                        {{ item.course.get_day_of_week_display }}
+                    </span>
+                </td>
+                <td>⏰ {{ item.course.start_time }} - {{ item.course.end_time }}</td>
+                <td><b>{{ item.course.title }}</b></td>
+                <td><span style="color: green;">✔ Активен</span></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <div class="empty-msg">
+            <p>Вы еще не записались ни на один курс.</p>
+            <a href="{% url 'course_list' %}">Перейти к списку курсов</a>
+        </div>
+    {% endif %}
+
+    <a href="{% url 'course_list' %}" class="btn-back">← Назад ко всем курсам</a>
+</div>
+
+</body>
+</html>
