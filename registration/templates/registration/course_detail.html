@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ course.title }}</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #f4f7f6; padding: 40px; display: flex; justify-content: center; }
+        
+        .container { 
+            background: white; 
+            width: 100%; 
+            max_width: 800px; 
+            border-radius: 20px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
+            overflow: hidden; 
+        }
+
+        .header { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: white; 
+            padding: 40px; 
+            text-align: center; 
+        }
+        
+        .header h1 { margin: 0; font-size: 2.5em; }
+        .header .subtitle { font-size: 1.2em; opacity: 0.9; margin-top: 10px; }
+
+        .content { padding: 40px; }
+
+        .section-title { 
+            font-size: 1.2em; 
+            color: #2c3e50; 
+            border-bottom: 2px solid #ecf0f1; 
+            padding-bottom: 10px; 
+            margin-bottom: 20px; 
+            font-weight: bold; 
+        }
+
+        /* Стиль для блока учителя */
+        .teacher-card {
+            display: flex;
+            align-items: center;
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+
+        .teacher-photo {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 20px;
+            border: 3px solid #fff;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+
+        .teacher-info h3 { margin: 0 0 5px 0; color: #34495e; }
+        .linkedin-btn {
+            display: inline-block;
+            margin-top: 10px;
+            background-color: #0077b5;
+            color: white;
+            text-decoration: none;
+            padding: 5px 15px;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+        
+        .btn-back {
+            display: block;
+            text-align: center;
+            margin-top: 30px;
+            text-decoration: none;
+            color: #7f8c8d;
+            font-weight: bold;
+        }
+        .btn-back:hover { color: #2c3e50; }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>{{ course.title }}</h1>
+        <div class="subtitle">{{ course.get_day_of_week_display }} | {{ course.start_time }} - {{ course.end_time }}</div>
+    </div>
+
+    <div class="content">
+        
+        <div class="section-title">📖 О курсе</div>
+        <p style="line-height: 1.6; color: #555;">
+            {{ course.description|default:"Подробное описание курса скоро появится." }}
+        </p>
+
+        <div class="section-title" style="margin-top: 40px;">👨‍🏫 Преподаватель</div>
+        
+        {% if course.teacher %}
+            <div class="teacher-card">
+                {% if course.teacher.photo %}
+                    <img src="{{ course.teacher.photo.url }}" alt="{{ course.teacher.name }}" class="teacher-photo">
+                {% else %}
+                    <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="No Photo" class="teacher-photo">
+                {% endif %}
+
+                <div class="teacher-info">
+                    <h3>{{ course.teacher.name }}</h3>
+                    <p style="margin: 0; color: #7f8c8d; font-size: 0.9em;">
+                        {{ course.teacher.expertise|default:"Эксперт курса" }}
+                    </p>
+                    <p style="font-style: italic; margin-top: 5px;">{{ course.teacher.bio|truncatewords:20 }}</p>
+                    
+                    {% if course.teacher_linkedin %}
+                        <a href="{{ course.teacher_linkedin }}" target="_blank" class="linkedin-btn">🔗 LinkedIn Profile</a>
+                    {% endif %}
+                </div>
+            </div>
+        {% else %}
+            <p>Преподаватель еще не назначен.</p>
+        {% endif %}
+
+        <a href="{% url 'course_list' %}" class="btn-back">← Вернуться ко всем курсам</a>
+    </div>
+</div>
+
+</body>
+</html>

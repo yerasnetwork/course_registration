@@ -6,24 +6,17 @@
     <title>Регистрация на курсы</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; }
-        .container { max_width: 1000px; margin: 0 auto; }
-        
-        /* Заголовок и профиль */
+        .container { max-width: 1000px; margin: 0 auto; }
         header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
         h1 { color: #2c3e50; }
         .user-info { background: white; padding: 10px 20px; border-radius: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        
-        /* Сообщения об ошибках/успехе */
         .messages { list-style: none; padding: 0; margin-bottom: 20px; }
         .messages li { padding: 15px; border-radius: 8px; margin-bottom: 10px; color: white; }
         .messages .success { background-color: #27ae60; }
         .messages .error { background-color: #e74c3c; }
-
-        /* Карточки курсов */
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
         .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); transition: transform 0.2s; }
         .card:hover { transform: translateY(-5px); }
-        
         .card h2 { margin-top: 0; color: #34495e; font-size: 1.4em; }
         .badge { display: inline-block; padding: 5px 10px; border-radius: 15px; font-size: 0.85em; font-weight: bold; margin-bottom: 15px; }
         .day-MON { background-color: #e3f2fd; color: #1565c0; }
@@ -31,16 +24,11 @@
         .day-WED { background-color: #e8f5e9; color: #2e7d32; }
         .day-THU { background-color: #fff3e0; color: #ef6c00; }
         .day-FRI { background-color: #ffebee; color: #c62828; }
-
         .details p { margin: 5px 0; color: #7f8c8d; }
         .btn { display: block; width: 100%; padding: 10px; text-align: center; border-radius: 8px; text-decoration: none; margin-top: 20px; font-weight: bold; cursor: pointer; border: none; }
-        
         .btn-enroll { background-color: #3498db; color: white; }
-        .btn-enroll:hover { background-color: #2980b9; }
-        
-        .btn-disabled { background-color: #bdc3c7; color: white; cursor: not-allowed; }
         .btn-enrolled { background-color: #27ae60; color: white; cursor: default; }
-
+        .btn-disabled { background-color: #bdc3c7; color: white; cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -51,7 +39,6 @@
         <div class="user-info">
             {% if user.is_authenticated %}
                 👤 <b>{{ user.username }}</b> | 
-                
                 <a href="{% url 'student_schedule' %}" style="text-decoration: none; color: #fff; background-color: #f39c12; padding: 5px 10px; border-radius: 5px; margin: 0 10px;">📅 Моё расписание</a>
                 <a href="{% url 'logout' %}" style="color: #c0392b; text-decoration: none;">Выйти</a>
             {% else %}
@@ -71,33 +58,97 @@
 
     <div class="grid">
         {% for course in courses %}
-        <div class="card">
-            <span class="badge day-{{ course.day_of_week }}">
-                {{ course.get_day_of_week_display }}
-            </span>
-            <h2>{{ course.title }}</h2>
-            
-            <div class="details">
-                <p>⏰ {{ course.start_time }} - {{ course.end_time }}</p>
-                <p>👥 Мест: {{ course.enrollments.count }} / {{ course.max_students }}</p>
+        <a href="{% url 'course_detail' course.id %}" style="text-decoration: none; color: inherit;">
+            <div class="card">
+                <span class="badge day-{{ course.day_of_week }}">
+                    {{ course.get_day_of_week_display }}
+                </span>
+                <h2>{{ course.title }}</h2>
+                <div class="details">
+                    <p>👨‍🏫 {{ course.teacher.name|default:"Преподаватель не назначен" }}</p>
+                    <p>⏰ {{ course.start_time }} - {{ course.end_time }}</p>
+                    <p>👥 Мест: {{ course.enrollments.count }} / {{ course.max_students }}</p>
+                </div>
+                <div style="margin-top: 15px;">
+                    {% if user.is_authenticated %}
+                        {% if course.id in user_enrollments %}
+                            <div class="btn btn-enrolled">✓ Вы записаны</div>
+                        {% elif course.is_full %}
+                            <div class="btn btn-disabled">Мест нет</div>
+                        {% else %}
+                            <object><a href="{% url 'enroll_course' course.id %}" class="btn btn-enroll">Записаться</a></object>
+                        {% endif %}
+                    {% else %}
+                        <object><a href="{% url 'login' %}" class="btn btn-disabled">Войдите для записи</a></object>
+                    {% endif %}
+                </div>
             </div>
-
-            {% if user.is_authenticated %}
-                {% if course.id in user_enrollments %}
-                    <div class="btn btn-enrolled">✓ Вы записаны</div>
-                {% elif course.is_full %}
-                    <div class="btn btn-disabled">Мест нет</div>
-                {% else %}
-                    <a href="{% url 'enroll_course' course.id %}" class="btn btn-enroll">Записаться</a>
-                {% endif %}
-            {% else %}
-                <a href="{% url 'login' %}" class="btn btn-disabled">Войдите для записи</a>
-            {% endif %}
-        </div>
+        </a>
         {% empty %}
-        <p>Курсов пока нет. Добавьте их через админ-панель.</p>
-        {% endfor %} </div>
+        <p>Курсов пока нет.</p>
+        {% endfor %}
+    </div>
 </div>
+
+<div id="chat-circle" onclick="toggleChat()" style="position: fixed; bottom: 20px; right: 20px; background: #4a90e2; color: white; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 1000;">
+    💬
+</div>
+
+<div id="chat-box" style="display: none; position: fixed; bottom: 90px; right: 20px; width: 300px; height: 400px; background: white; border-radius: 15px; box-shadow: 0 5px 25px rgba(0,0,0,0.2); flex-direction: column; z-index: 1000; overflow: hidden; border: 1px solid #ddd;">
+    <div style="background: #4a90e2; color: white; padding: 15px; font-weight: bold;">Помощник по курсам</div>
+    <div id="chat-messages" style="flex: 1; padding: 15px; overflow-y: auto; font-size: 0.9em; display: flex; flex-direction: column; gap: 10px;">
+        <div style="background: #f1f0f0; padding: 8px; border-radius: 10px; align-self: flex-start;">Привет! Какой курс тебе помочь выбрать?</div>
+    </div>
+    <div style="padding: 10px; border-top: 1px solid #eee; display: flex;">
+        <input type="text" id="user-input" placeholder="Спроси что-нибудь..." style="flex: 1; border: none; outline: none;">
+        <button onclick="sendMessage()" style="background: none; border: none; color: #4a90e2; cursor: pointer; font-weight: bold;">Отправить</button>
+    </div>
+</div>
+
+<script>
+function toggleChat() {
+    const box = document.getElementById('chat-box');
+    if (box.style.display === 'none' || box.style.display === '') {
+        box.style.display = 'flex';
+    } else {
+        box.style.display = 'none';
+    }
+}
+
+async function sendMessage() {
+    const input = document.getElementById('user-input');
+    const msg = input.value;
+    if (!msg) return;
+
+    const container = document.getElementById('chat-messages');
+    container.innerHTML += `<div style="background: #4a90e2; color: white; padding: 8px; border-radius: 10px; align-self: flex-end;">${msg}</div>`;
+    input.value = '';
+    container.scrollTop = container.scrollHeight;
+
+    try {
+        const response = await fetch('/api/chat/', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}' 
+            },
+            body: JSON.stringify({ message: msg })
+        });
+        
+        const data = await response.json();
+        
+        if (data.reply) {
+            container.innerHTML += `<div style="background: #f1f0f0; padding: 8px; border-radius: 10px; align-self: flex-start;">${data.reply}</div>`;
+        } else {
+            container.innerHTML += `<div style="color: red; font-size: 0.8em;">Ошибка: ${data.error || 'Нет ответа'}</div>`;
+        }
+    } catch (error) {
+        console.error("Ошибка:", error);
+        container.innerHTML += `<div style="color: red; font-size: 0.8em;">Ошибка соединения.</div>`;
+    }
+    container.scrollTop = container.scrollHeight;
+}
+</script>
 
 </body>
 </html>
