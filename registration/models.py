@@ -17,10 +17,10 @@ class Course(models.Model):
     title = models.CharField(max_length=200, verbose_name="Название курса")
     description = models.TextField(verbose_name="Описание (для чего, для кого)", blank=True)
     
-    # Ссылка на учителя (SET_NULL означает, что если учителя удалят, курс останется, но без учителя)
+    # Ссылка на учителя 
     teacher = models.ForeignKey(Teacher, on_delete=models.SET_NULL, null=True, blank=True, related_name='courses', verbose_name="Преподаватель")
     
-    # Линк на LinkedIn и прочее (из твоего предыдущего запроса)
+    # Линк на LinkedIn и прочее 
     teacher_linkedin = models.URLField(verbose_name="LinkedIn преподавателя", blank=True)
     
     max_students = models.PositiveIntegerField(default=30, verbose_name="Максимум мест")

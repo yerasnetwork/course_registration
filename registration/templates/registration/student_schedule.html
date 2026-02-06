@@ -2,68 +2,107 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Моё расписание</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мое расписание</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; }
-        .container { max_width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; padding: 20px; }
         
-        h1 { color: #2c3e50; text-align: center; }
-        
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background-color: #3498db; color: white; border-radius: 5px 5px 0 0; }
-        tr:hover { background-color: #f1f2f6; }
-        
-        .badge { padding: 5px 10px; border-radius: 15px; font-weight: bold; font-size: 0.85em; }
-        .day-MON { background: #e3f2fd; color: #1565c0; }
-        .day-TUE { background: #f3e5f5; color: #7b1fa2; }
-        .day-WED { background: #e8f5e9; color: #2e7d32; }
-        .day-THU { background: #fff3e0; color: #ef6c00; }
-        .day-FRI { background: #ffebee; color: #c62828; }
+        .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .back-btn { text-decoration: none; color: #3498db; font-weight: bold; border: 1px solid #3498db; padding: 8px 15px; border-radius: 5px; }
+        .back-btn:hover { background: #3498db; color: white; }
 
-        .btn-back { display: inline-block; margin-top: 20px; text-decoration: none; color: #7f8c8d; }
-        .empty-msg { text-align: center; color: #95a5a6; padding: 20px; }
+        /* Сетка календаря */
+        .schedule-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* Адаптивные колонки */
+            gap: 15px;
+        }
+
+        /* Карточка дня */
+        .day-column {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            border-top: 5px solid #bdc3c7; /* Серый цвет по умолчанию */
+            min-height: 200px;
+        }
+
+        /* Стиль для СЕГОДНЯШНЕГО дня */
+        .day-column.today {
+            border-top: 5px solid #2ecc71; /* Зеленая шапка */
+            background-color: #eafaf1; /* Легкий зеленый фон */
+            transform: scale(1.02); /* Чуть больше остальных */
+            box-shadow: 0 5px 15px rgba(46, 204, 113, 0.3);
+        }
+
+        .day-title {
+            text-align: center;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .today .day-title::after {
+            content: " (Сегодня)";
+            color: #27ae60;
+            font-size: 0.7em;
+            display: block;
+        }
+
+        /* Карточка урока внутри дня */
+        .lesson-card {
+            background: #fff;
+            border-left: 4px solid #3498db;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .lesson-time { font-weight: bold; color: #34495e; font-size: 0.9em; }
+        .lesson-title { font-size: 1em; margin: 5px 0; color: #2980b9; }
+        .lesson-teacher { font-size: 0.8em; color: #7f8c8d; }
+        
+        .empty-day { text-align: center; color: #bdc3c7; margin-top: 20px; font-style: italic; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>📅 Моё расписание</h1>
-    
-    {% if enrollments %}
-    <table>
-        <thead>
-            <tr>
-                <th>День</th>
-                <th>Время</th>
-                <th>Курс</th>
-                <th>Действия</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in enrollments %}
-            <tr>
-                <td>
-                    <span class="badge day-{{ item.course.day_of_week }}">
-                        {{ item.course.get_day_of_week_display }}
-                    </span>
-                </td>
-                <td>⏰ {{ item.course.start_time }} - {{ item.course.end_time }}</td>
-                <td><b>{{ item.course.title }}</b></td>
-                <td><span style="color: green;">✔ Активен</span></td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-        <div class="empty-msg">
-            <p>Вы еще не записались ни на один курс.</p>
-            <a href="{% url 'course_list' %}">Перейти к списку курсов</a>
-        </div>
-    {% endif %}
+    <div class="header-box">
+        <h1>📅 Мое расписание</h1>
+        <a href="{% url 'course_list' %}" class="back-btn">← Назад к курсам</a>
+    </div>
 
-    <a href="{% url 'course_list' %}" class="btn-back">← Назад ко всем курсам</a>
-</div>
+    <div class="schedule-grid">
+        {% for day_code, courses in schedule.items %}
+            
+            <div class="day-column {% if day_code == current_day_code %}today{% endif %}">
+                
+                <div class="day-title">
+                   {% for k, v in day_names.items %}
+                       {% if k == day_code %}{{ v }}{% endif %}
+                   {% endfor %}
+                </div>
+
+                {% if courses %}
+                    {% for course in courses %}
+                    <div class="lesson-card">
+                        <div class="lesson-time">⏰ {{ course.start_time }} - {{ course.end_time }}</div>
+                        <div class="lesson-title">{{ course.title }}</div>
+                        <div class="lesson-teacher">👨‍🏫 {{ course.teacher.name }}</div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-day">Нет занятий</div>
+                {% endif %}
+            </div>
+
+        {% endfor %}
+    </div>
 
 </body>
 </html>

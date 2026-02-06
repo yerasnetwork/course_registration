@@ -8,14 +8,13 @@ from django.contrib.auth import login, logout
 from django.contrib.auth.forms import AuthenticationForm
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from datetime import datetime
 
 # Импорт твоих моделей и форм
 from .models import Course, Enrollment
 from .forms import UserRegisterForm
 
-# --- ОБЫЧНЫЕ ПРЕДСТАВЛЕНИЯ (HTML) ---
 
-# 1. Список курсов
 def course_list(request):
     courses = Course.objects.all()
     user_enrollments = []
@@ -49,10 +48,42 @@ def enroll_course(request, course_id):
 # 4. Мое расписание
 @login_required
 def student_schedule(request):
-    enrollments = Enrollment.objects.filter(student=request.user).select_related('course')
-    enrollments = enrollments.order_by('course__day_of_week', 'course__start_time')
-    return render(request, 'registration/student_schedule.html', {'enrollments': enrollments})
+    # 1. Получаем все записи студента
+    enrollments = Enrollment.objects.filter(student=request.user).select_related('course', 'course__teacher')
+    
+    # 2. Подготовка структуры данных: Словарь { 'MON': [курс1, курс2], 'TUE': [], ... }
+    # Порядок дней важен для отображения
+    days_order = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
+    schedule = {day: [] for day in days_order}
+    
+    # Раскладываем курсы по дням
+    for enrollment in enrollments:
+        day = enrollment.course.day_of_week
+        if day in schedule:
+            schedule[day].append(enrollment.course)
 
+    # Сортируем уроки внутри каждого дня по времени
+    for day in schedule:
+        schedule[day].sort(key=lambda x: x.start_time)
+
+    # 3. Определяем "Сегодня"
+    # datetime.now().weekday() возвращает 0 для Пн, 1 для Вт и т.д.
+    weekdays_map = {0: 'MON', 1: 'TUE', 2: 'WED', 3: 'THU', 4: 'FRI', 5: 'SAT', 6: 'SUN'}
+    current_day_code = weekdays_map.get(datetime.now().weekday())
+
+    # Словарь для красивых названий дней на русском
+    day_names = {
+        'MON': 'Понедельник', 'TUE': 'Вторник', 'WED': 'Среда',
+        'THU': 'Четверг', 'FRI': 'Пятница', 'SAT': 'Суббота', 'SUN': 'Воскресенье'
+    }
+
+    context = {
+        'schedule': schedule,           # Наши уроки по дням
+        'current_day_code': current_day_code, # Код сегодняшнего дня (например 'FRI')
+        'day_names': day_names,         # Русские названия
+    }
+    
+    return render(request, 'registration/student_schedule.html', context)
 
 # --- АУТЕНТИФИКАЦИЯ ---
 
