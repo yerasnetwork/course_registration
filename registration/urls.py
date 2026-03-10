@@ -11,5 +11,6 @@ urlpatterns = [
     path('course/<int:course_id>/', views.course_detail, name='course_detail'),
     path('api/courses/', views.api_courses, name='api_courses'),
     path('api/chat/', views.chat_with_gpt, name='api_chat'),
+    path('profile/', views.profile_view, name='profile'),
 
 ]
