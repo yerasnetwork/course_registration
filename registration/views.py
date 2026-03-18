@@ -13,7 +13,7 @@ from .forms import ProfileUpdateForm
 
 # Импорт моделей и форм
 # Убрал Comment из импорта, чтобы не светилась ошибка "unused"
-from .models import Course, Enrollment
+from .models import Course, Enrollment, Teacher
 from .forms import UserRegisterForm, CommentForm
 
 # 1. Список курсов
@@ -229,6 +229,32 @@ def chat_with_gpt(request):
             return JsonResponse({'reply': "Проблема на стороне сервера. Попробуй позже."}, status=200)
 
     return JsonResponse({'error': 'Method not allowed'}, status=400)
+
+
+# --- TEACHER DASHBOARD ---
+
+@login_required
+def teacher_dashboard(request):
+    if not hasattr(request.user, 'teacher_profile') or request.user.teacher_profile is None:
+        messages.error(request, "Access denied: you are not registered as a teacher.")
+        return redirect('course_list')
+
+    teacher = request.user.teacher_profile
+    courses_data = []
+    for course in teacher.courses.all():
+        enrolled = course.enrollments.select_related('student').all()
+        courses_data.append({
+            'course': course,
+            'students': [e.student for e in enrolled],
+            'student_count': enrolled.count(),
+        })
+
+    return render(request, 'registration/teacher_dashboard.html', {
+        'teacher': teacher,
+        'courses_data': courses_data,
+    })
+
+
 @login_required
 def profile_view(request):
     if request.method == 'POST':

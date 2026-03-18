@@ -5,6 +5,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 class Teacher(models.Model):
+    user = models.OneToOneField(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='teacher_profile', verbose_name="User Account")
     name = models.CharField(max_length=100, verbose_name="ФИО Преподавателя")
     bio = models.TextField(verbose_name="О преподавателе", blank=True)
     expertise = models.CharField(max_length=200, verbose_name="Специализация", blank=True)
