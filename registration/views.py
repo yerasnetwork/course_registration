@@ -13,7 +13,7 @@ from .forms import ProfileUpdateForm
 
 # Импорт моделей и форм
 # Убрал Comment из импорта, чтобы не светилась ошибка "unused"
-from .models import Course, Enrollment, Teacher
+from .models import Course, Enrollment, Teacher, ParentProfile
 from .forms import UserRegisterForm, CommentForm
 
 # 1. Список курсов
@@ -253,6 +253,82 @@ def teacher_dashboard(request):
         'teacher': teacher,
         'courses_data': courses_data,
     })
+
+
+@login_required
+def parent_dashboard(request):
+    if not hasattr(request.user, 'parent_profile'):
+        messages.error(request, "Access denied: you are not registered as a parent.")
+        return redirect('course_list')
+
+    parent = request.user.parent_profile
+    children_data = []
+
+    for child in parent.children.all():
+        enrollments = Enrollment.objects.filter(student=child).select_related('course', 'course__teacher')
+        days_order = ['MON', 'TUE', 'WED', 'THU', 'FRI']
+        schedule = {day: [] for day in days_order}
+        for enrollment in enrollments:
+            day = enrollment.course.day_of_week
+            if day in schedule:
+                schedule[day].append(enrollment.course)
+        for day in schedule:
+            schedule[day].sort(key=lambda x: x.start_time)
+
+        children_data.append({
+            'child': child,
+            'enrollments': enrollments,
+            'schedule': schedule,
+            'course_count': enrollments.count(),
+        })
+
+    # Handle adding a child by username
+    if request.method == 'POST':
+        username = request.POST.get('child_username', '').strip()
+        from django.contrib.auth.models import User as AuthUser
+        try:
+            child_user = AuthUser.objects.get(username=username)
+            if child_user == request.user:
+                messages.error(request, "You cannot add yourself as a child.")
+            elif hasattr(child_user, 'teacher_profile') or hasattr(child_user, 'parent_profile'):
+                messages.error(request, "This user is a teacher or parent, not a student.")
+            elif parent.children.filter(id=child_user.id).exists():
+                messages.warning(request, f"{child_user.get_full_name() or child_user.username} is already linked.")
+            else:
+                parent.children.add(child_user)
+                messages.success(request, f"{child_user.get_full_name() or child_user.username} added successfully!")
+        except AuthUser.DoesNotExist:
+            messages.error(request, f'Student with username "{username}" not found.')
+        return redirect('parent_dashboard')
+
+    day_names = {
+        'MON': 'Mon', 'TUE': 'Tue', 'WED': 'Wed', 'THU': 'Thu', 'FRI': 'Fri',
+    }
+    weekdays_map = {0: 'MON', 1: 'TUE', 2: 'WED', 3: 'THU', 4: 'FRI', 5: 'SAT', 6: 'SUN'}
+    current_day_code = weekdays_map.get(datetime.now().weekday())
+
+    return render(request, 'registration/parent_dashboard.html', {
+        'parent': parent,
+        'children_data': children_data,
+        'day_names': day_names,
+        'current_day_code': current_day_code,
+        'days_order': ['MON', 'TUE', 'WED', 'THU', 'FRI'],
+    })
+
+
+@login_required
+def remove_child(request, child_id):
+    if not hasattr(request.user, 'parent_profile'):
+        return redirect('course_list')
+    if request.method == 'POST':
+        from django.contrib.auth.models import User as AuthUser
+        try:
+            child_user = AuthUser.objects.get(id=child_id)
+            request.user.parent_profile.children.remove(child_user)
+            messages.success(request, f"{child_user.get_full_name() or child_user.username} removed.")
+        except AuthUser.DoesNotExist:
+            pass
+    return redirect('parent_dashboard')
 
 
 @login_required

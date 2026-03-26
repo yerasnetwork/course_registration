@@ -13,4 +13,6 @@ urlpatterns = [
     path('api/chat/', views.chat_with_gpt, name='api_chat'),
     path('profile/', views.profile_view, name='profile'),
     path('teacher/dashboard/', views.teacher_dashboard, name='teacher_dashboard'),
+    path('parent/dashboard/', views.parent_dashboard, name='parent_dashboard'),
+    path('parent/remove-child/<int:child_id>/', views.remove_child, name='remove_child'),
 ]

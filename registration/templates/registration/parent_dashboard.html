@@ -1,0 +1,286 @@
+{% load dict_filters %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parent Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body { background-color: #f0f2f5; }
+        .dashboard-header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .child-card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+        .child-card .card-header {
+            background: linear-gradient(90deg, #0f3460, #533483);
+            color: white;
+            padding: 1rem 1.25rem;
+        }
+        .schedule-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0.75rem;
+        }
+        .schedule-day {
+            border-radius: 8px;
+            background: #f8f9fa;
+            padding: 0.75rem 0.5rem;
+            min-height: 100px;
+        }
+        .schedule-day.today {
+            border: 2px solid #198754;
+            background: #f0fff4;
+        }
+        .schedule-day-header {
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            color: #6c757d;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+        .schedule-day.today .schedule-day-header {
+            color: #198754;
+        }
+        .lesson-chip {
+            background: linear-gradient(135deg, #0f3460, #533483);
+            color: white;
+            border-radius: 6px;
+            padding: 0.35rem 0.5rem;
+            font-size: 0.75rem;
+            margin-bottom: 0.35rem;
+        }
+        .lesson-chip .time { opacity: 0.8; font-size: 0.7rem; }
+        .add-child-card {
+            border: 2px dashed #dee2e6;
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            background: white;
+            margin-bottom: 2rem;
+        }
+        .avatar-circle {
+            width: 42px; height: 42px; border-radius: 50%;
+            background: linear-gradient(135deg, #0f3460, #533483);
+            color: white;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; font-size: 1rem; flex-shrink: 0;
+        }
+        @media (max-width: 768px) {
+            .schedule-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 480px) {
+            .schedule-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="dashboard-header">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="rounded-circle bg-white bg-opacity-25 d-flex align-items-center justify-content-center"
+                     style="width:60px;height:60px;font-size:1.75rem;">
+                    <i class="bi bi-people-fill text-white"></i>
+                </div>
+                <div>
+                    <p class="mb-0 text-white-50 small"><i class="bi bi-house-heart-fill me-1"></i>Parent Dashboard</p>
+                    <h2 class="mb-0 fw-bold">
+                        Welcome, {{ parent.user.get_full_name|default:parent.user.username }}
+                    </h2>
+                    <span class="badge bg-light text-dark mt-1">
+                        {{ children_data|length }} child{{ children_data|length|pluralize:"ren" }} linked
+                    </span>
+                </div>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{% url 'course_list' %}" class="btn btn-outline-light btn-sm">
+                    <i class="bi bi-grid-fill me-1"></i>All Courses
+                </a>
+                <a href="{% url 'logout' %}" class="btn btn-danger btn-sm">
+                    <i class="bi bi-box-arrow-right me-1"></i>Logout
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container pb-5">
+
+    <!-- Messages -->
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+
+    <!-- Add Child Form -->
+    <div class="add-child-card">
+        <i class="bi bi-person-plus-fill fs-2 text-primary mb-2 d-block"></i>
+        <h6 class="fw-bold mb-1">Link a Student</h6>
+        <p class="text-muted small mb-3">Enter the student's username to add them to your dashboard.</p>
+        <form method="post" class="d-flex gap-2 justify-content-center flex-wrap">
+            {% csrf_token %}
+            <input type="text" name="child_username" class="form-control" style="max-width:260px;"
+                   placeholder="Student username" required>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-plus-lg me-1"></i>Add Child
+            </button>
+        </form>
+    </div>
+
+    <!-- Children -->
+    {% if children_data %}
+        {% for item in children_data %}
+        <div class="child-card card">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="avatar-circle">
+                        {{ item.child.first_name|first|upper }}{{ item.child.last_name|first|upper }}
+                    </div>
+                    <div>
+                        <h5 class="mb-0 fw-bold">
+                            {% if item.child.first_name or item.child.last_name %}
+                                {{ item.child.first_name }} {{ item.child.last_name }}
+                            {% else %}
+                                {{ item.child.username }}
+                            {% endif %}
+                        </h5>
+                        <small class="text-white-50">
+                            <i class="bi bi-at me-1"></i>{{ item.child.username }}
+                            {% if item.child.email %}
+                                &nbsp;&bull;&nbsp;
+                                <a href="mailto:{{ item.child.email }}" class="text-white-50">{{ item.child.email }}</a>
+                            {% endif %}
+                        </small>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-warning text-dark fs-6 px-3 py-2">
+                        <i class="bi bi-book-fill me-1"></i>{{ item.course_count }} course{{ item.course_count|pluralize }}
+                    </span>
+                    <form method="post" action="{% url 'remove_child' item.child.id %}"
+                          onsubmit="return confirm('Remove {{ item.child.username }} from your dashboard?')">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-light">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card-body">
+                {% if item.course_count > 0 %}
+                    <!-- Weekly Schedule -->
+                    <h6 class="fw-semibold text-muted mb-3">
+                        <i class="bi bi-calendar-week me-1"></i>Weekly Schedule
+                    </h6>
+                    <div class="schedule-grid mb-4">
+                        {% for day_code in days_order %}
+                        <div class="schedule-day {% if day_code == current_day_code %}today{% endif %}">
+                            <div class="schedule-day-header">
+                                {{ day_names|get_item:day_code|default:day_code }}
+                                {% if day_code == current_day_code %}
+                                    <span class="badge bg-success ms-1" style="font-size:0.6rem;">Today</span>
+                                {% endif %}
+                            </div>
+                            {% for course in item.schedule|get_item:day_code %}
+                                <div class="lesson-chip">
+                                    <div class="fw-semibold">{{ course.title }}</div>
+                                    <div class="time">
+                                        {{ course.start_time|time:"H:i" }} – {{ course.end_time|time:"H:i" }}
+                                    </div>
+                                    {% if course.teacher %}
+                                        <div class="time">{{ course.teacher.name }}</div>
+                                    {% endif %}
+                                </div>
+                            {% empty %}
+                                <div class="text-center text-muted" style="font-size:0.75rem;margin-top:0.5rem;">—</div>
+                            {% endfor %}
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Course List -->
+                    <h6 class="fw-semibold text-muted mb-3">
+                        <i class="bi bi-list-ul me-1"></i>Enrolled Courses
+                    </h6>
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Course</th>
+                                    <th>Teacher</th>
+                                    <th>Schedule</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for enrollment in item.enrollments %}
+                                <tr>
+                                    <td class="text-muted">{{ forloop.counter }}</td>
+                                    <td class="fw-semibold">{{ enrollment.course.title }}</td>
+                                    <td>
+                                        {% if enrollment.course.teacher %}
+                                            {{ enrollment.course.teacher.name }}
+                                        {% else %}
+                                            <span class="text-muted">—</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">
+                                            {{ enrollment.course.get_day_of_week_display }}
+                                        </span>
+                                        {{ enrollment.course.start_time|time:"H:i" }} – {{ enrollment.course.end_time|time:"H:i" }}
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'course_detail' enrollment.course.id %}"
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-book fs-2 d-block mb-2"></i>
+                        <p class="mb-0">No courses enrolled yet.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center py-5 text-muted">
+                <i class="bi bi-person-x fs-1 d-block mb-3"></i>
+                <h5>No children linked yet.</h5>
+                <p class="small">Use the form above to add a student by their username.</p>
+            </div>
+        </div>
+    {% endif %}
+
+</div>
+
+<!-- Template filter workaround: use JS or add get_item templatetag -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

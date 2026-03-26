@@ -120,6 +120,18 @@ class Profile(models.Model):
 
     def __str__(self):
         return f"Профиль {self.user.username}"
+
+
+class ParentProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='parent_profile', verbose_name="User Account")
+    children = models.ManyToManyField(User, related_name='parents', blank=True, verbose_name="Children")
+
+    class Meta:
+        verbose_name = "Parent"
+        verbose_name_plural = "Parents"
+
+    def __str__(self):
+        return f"Parent: {self.user.get_full_name() or self.user.username}"
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
     if created:
