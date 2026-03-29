@@ -13,7 +13,7 @@ from .forms import ProfileUpdateForm
 
 # Импорт моделей и форм
 # Убрал Comment из импорта, чтобы не светилась ошибка "unused"
-from .models import Course, Enrollment, Teacher, ParentProfile
+from .models import Course, Enrollment, Teacher, ParentProfile, Grade, Attendance
 from .forms import UserRegisterForm, CommentForm
 
 # 1. Список курсов
@@ -252,6 +252,102 @@ def teacher_dashboard(request):
     return render(request, 'registration/teacher_dashboard.html', {
         'teacher': teacher,
         'courses_data': courses_data,
+    })
+
+
+@login_required
+def manage_grades(request, course_id):
+    if not hasattr(request.user, 'teacher_profile'):
+        messages.error(request, "Access denied.")
+        return redirect('course_list')
+
+    course = get_object_or_404(Course, id=course_id, teacher=request.user.teacher_profile)
+    students = [e.student for e in course.enrollments.select_related('student').all()]
+
+    if request.method == 'POST':
+        for student in students:
+            grade_value = request.POST.get(f'grade_{student.id}', '').strip()
+            comment_value = request.POST.get(f'comment_{student.id}', '').strip()
+            Grade.objects.update_or_create(
+                student=student,
+                course=course,
+                defaults={'grade': grade_value, 'comment': comment_value},
+            )
+        messages.success(request, "Grades saved successfully!")
+        return redirect('manage_grades', course_id=course.id)
+
+    # Build list with existing grades
+    grade_map = {g.student_id: g for g in Grade.objects.filter(course=course)}
+    students_data = [
+        {'student': s, 'grade_obj': grade_map.get(s.id)}
+        for s in students
+    ]
+
+    return render(request, 'registration/manage_grades.html', {
+        'course': course,
+        'students_data': students_data,
+    })
+
+
+@login_required
+def manage_attendance(request, course_id):
+    if not hasattr(request.user, 'teacher_profile'):
+        messages.error(request, "Access denied.")
+        return redirect('course_list')
+
+    course = get_object_or_404(Course, id=course_id, teacher=request.user.teacher_profile)
+    students = [e.student for e in course.enrollments.select_related('student').all()]
+
+    from datetime import date as date_type
+    selected_date = request.GET.get('date') or str(date_type.today())
+    try:
+        selected_date_obj = date_type.fromisoformat(selected_date)
+    except ValueError:
+        selected_date_obj = date_type.today()
+        selected_date = str(selected_date_obj)
+
+    if request.method == 'POST':
+        post_date = request.POST.get('date', selected_date)
+        try:
+            post_date_obj = date_type.fromisoformat(post_date)
+        except ValueError:
+            post_date_obj = date_type.today()
+        for student in students:
+            status = request.POST.get(f'status_{student.id}', Attendance.ABSENT)
+            if status not in [Attendance.PRESENT, Attendance.ABSENT, Attendance.LATE]:
+                status = Attendance.ABSENT
+            Attendance.objects.update_or_create(
+                student=student,
+                course=course,
+                date=post_date_obj,
+                defaults={'status': status},
+            )
+        messages.success(request, f"Attendance for {post_date_obj} saved!")
+        return redirect(f"{request.path}?date={post_date_obj}")
+
+    attendance_map = {
+        a.student_id: a
+        for a in Attendance.objects.filter(course=course, date=selected_date_obj)
+    }
+    students_data = [
+        {'student': s, 'attendance': attendance_map.get(s.id)}
+        for s in students
+    ]
+
+    # All dates that have attendance records for this course
+    attendance_dates = (
+        Attendance.objects.filter(course=course)
+        .values_list('date', flat=True)
+        .distinct()
+        .order_by('-date')
+    )
+
+    return render(request, 'registration/manage_attendance.html', {
+        'course': course,
+        'students_data': students_data,
+        'selected_date': selected_date,
+        'attendance_dates': attendance_dates,
+        'status_choices': Attendance.STATUS_CHOICES,
     })
 
 

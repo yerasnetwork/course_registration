@@ -113,6 +113,45 @@ class Comment(models.Model):
     # Хак для шаблона: возвращает список, чтобы нарисовать звезды циклом
     def get_stars(self):
         return range(self.rating)
+class Grade(models.Model):
+    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='grades')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='grades')
+    grade = models.CharField(max_length=10, blank=True, verbose_name="Grade")
+    comment = models.TextField(blank=True, verbose_name="Comment")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('student', 'course')
+        verbose_name = "Grade"
+        verbose_name_plural = "Grades"
+
+    def __str__(self):
+        return f"{self.student.username} — {self.course.title}: {self.grade}"
+
+
+class Attendance(models.Model):
+    PRESENT = 'present'
+    ABSENT = 'absent'
+    LATE = 'late'
+    STATUS_CHOICES = [
+        (PRESENT, 'Present'),
+        (ABSENT, 'Absent'),
+        (LATE, 'Late'),
+    ]
+    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='attendances')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='attendances')
+    date = models.DateField(verbose_name="Date")
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=PRESENT)
+
+    class Meta:
+        unique_together = ('student', 'course', 'date')
+        verbose_name = "Attendance"
+        verbose_name_plural = "Attendance Records"
+
+    def __str__(self):
+        return f"{self.student.username} — {self.course.title} — {self.date}: {self.status}"
+
+
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     avatar = models.ImageField(upload_to='avatars/', default='avatars/default.png', null=True, blank=True)

@@ -103,10 +103,18 @@
                         <i class="bi bi-clock me-1"></i>{{ item.course.start_time|time:"H:i" }} – {{ item.course.end_time|time:"H:i" }}
                     </small>
                 </div>
-                <span class="badge bg-warning text-dark fs-6 px-3 py-2">
-                    <i class="bi bi-people-fill me-1"></i>
-                    {{ item.student_count }} / {{ item.course.max_students }} students
-                </span>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <span class="badge bg-warning text-dark fs-6 px-3 py-2">
+                        <i class="bi bi-people-fill me-1"></i>
+                        {{ item.student_count }} / {{ item.course.max_students }} students
+                    </span>
+                    <a href="{% url 'manage_grades' item.course.id %}" class="btn btn-sm btn-light">
+                        <i class="bi bi-pencil-square me-1"></i>Grades
+                    </a>
+                    <a href="{% url 'manage_attendance' item.course.id %}" class="btn btn-sm btn-light">
+                        <i class="bi bi-calendar-check me-1"></i>Attendance
+                    </a>
+                </div>
             </div>
             <div class="card-body">
                 {% if item.course.description %}

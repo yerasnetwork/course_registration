@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance — {{ course.title }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body { background-color: #f0f2f5; }
+        .page-header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .status-present { color: #198754; }
+        .status-absent  { color: #dc3545; }
+        .status-late    { color: #fd7e14; }
+    </style>
+</head>
+<body>
+
+<div class="page-header">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <p class="mb-0 text-white-50 small"><i class="bi bi-calendar-check me-1"></i>Attendance</p>
+                <h2 class="mb-0 fw-bold">{{ course.title }}</h2>
+                <small class="text-white-50">
+                    <i class="bi bi-calendar3 me-1"></i>{{ course.get_day_of_week_display }}
+                    &nbsp;|&nbsp;
+                    <i class="bi bi-clock me-1"></i>{{ course.start_time|time:"H:i" }} – {{ course.end_time|time:"H:i" }}
+                </small>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{% url 'manage_grades' course.id %}" class="btn btn-outline-light btn-sm">
+                    <i class="bi bi-pencil-square me-1"></i>Grades
+                </a>
+                <a href="{% url 'teacher_dashboard' %}" class="btn btn-outline-light btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i>Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container pb-5">
+
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+
+    <div class="row g-4">
+
+        <!-- Date picker + form -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <form method="get" class="d-flex align-items-center gap-3 flex-wrap">
+                        <h5 class="mb-0 me-auto"><i class="bi bi-calendar-event me-2 text-primary"></i>Mark Attendance</h5>
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="form-label mb-0 fw-semibold text-muted small">Date:</label>
+                            <input type="date" name="date" value="{{ selected_date }}" class="form-control form-control-sm" style="width:160px;">
+                            <button type="submit" class="btn btn-outline-primary btn-sm">Load</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-body p-0">
+                    {% if students_data %}
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="date" value="{{ selected_date }}">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width:2.5rem;">#</th>
+                                        <th>Student</th>
+                                        <th>
+                                            <span class="status-present me-3"><i class="bi bi-check-circle-fill"></i> Present</span>
+                                            <span class="status-late me-3"><i class="bi bi-clock-fill"></i> Late</span>
+                                            <span class="status-absent"><i class="bi bi-x-circle-fill"></i> Absent</span>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in students_data %}
+                                    <tr>
+                                        <td class="text-muted align-middle">{{ forloop.counter }}</td>
+                                        <td class="align-middle">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold"
+                                                     style="width:34px;height:34px;font-size:.75rem;flex-shrink:0;">
+                                                    {{ item.student.first_name|first|upper }}{{ item.student.last_name|first|upper }}
+                                                </div>
+                                                <div>
+                                                    {% if item.student.first_name or item.student.last_name %}
+                                                        <div class="fw-semibold">{{ item.student.first_name }} {{ item.student.last_name }}</div>
+                                                    {% endif %}
+                                                    <small class="text-muted">{{ item.student.username }}</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="align-middle">
+                                            {% with current=item.attendance.status|default:"present" %}
+                                            <div class="d-flex gap-3">
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input" type="radio"
+                                                           name="status_{{ item.student.id }}"
+                                                           id="p_{{ item.student.id }}"
+                                                           value="present"
+                                                           {% if current == "present" %}checked{% endif %}>
+                                                    <label class="form-check-label status-present fw-semibold" for="p_{{ item.student.id }}">Present</label>
+                                                </div>
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input" type="radio"
+                                                           name="status_{{ item.student.id }}"
+                                                           id="l_{{ item.student.id }}"
+                                                           value="late"
+                                                           {% if current == "late" %}checked{% endif %}>
+                                                    <label class="form-check-label status-late fw-semibold" for="l_{{ item.student.id }}">Late</label>
+                                                </div>
+                                                <div class="form-check form-check-inline">
+                                                    <input class="form-check-input" type="radio"
+                                                           name="status_{{ item.student.id }}"
+                                                           id="a_{{ item.student.id }}"
+                                                           value="absent"
+                                                           {% if current == "absent" %}checked{% endif %}>
+                                                    <label class="form-check-label status-absent fw-semibold" for="a_{{ item.student.id }}">Absent</label>
+                                                </div>
+                                            </div>
+                                            {% endwith %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="p-3 border-top bg-light d-flex justify-content-end">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-floppy me-1"></i>Save Attendance
+                            </button>
+                        </div>
+                    </form>
+                    {% else %}
+                        <div class="text-center py-5 text-muted">
+                            <i class="bi bi-person-x fs-1 d-block mb-2"></i>
+                            <p>No students enrolled yet.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Attendance history -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <h6 class="mb-0"><i class="bi bi-clock-history me-2 text-secondary"></i>Past Dates</h6>
+                </div>
+                <div class="card-body p-0">
+                    {% if attendance_dates %}
+                    <ul class="list-group list-group-flush">
+                        {% for d in attendance_dates %}
+                        <li class="list-group-item list-group-item-action {% if d|date:'Y-m-d' == selected_date %}active{% endif %}">
+                            <a href="?date={{ d|date:'Y-m-d' }}"
+                               class="text-decoration-none {% if d|date:'Y-m-d' == selected_date %}text-white{% endif %}">
+                                <i class="bi bi-calendar3 me-2"></i>{{ d|date:"D, d M Y" }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                        <div class="text-center py-4 text-muted small">
+                            <i class="bi bi-calendar-x d-block fs-3 mb-2"></i>
+                            No records yet.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
